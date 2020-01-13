@@ -71,7 +71,7 @@ class GStreamerPluginsBadConan(ConanFile):
             self.requires("opencv/[>=3.4.8]@%s/stable" % self.user)
         if self.options.closedcaption:
             self.requires("pango/[>=1.4.3]@%s/stable" % self.user)
-        if self.options.nvenc or self.options.nvdec:
+        if self.settings.arch != "x86_64":
             self.requires("cuda/10.1.243@%s/stable" % self.user)
             self.requires("mesa/19.2.0@%s/stable" % self.user)
 
