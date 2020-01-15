@@ -3,7 +3,9 @@ from conans import ConanFile, Meson, tools
 
 class GStreamerPluginsBadConan(ConanFile):
     name = "gstreamer-plugins-bad"
-    version = tools.get_env("GIT_TAG", "1.16.2")
+    version = tools.get_env("GIT_TAG", "master")
+    gst_version = "master" if version == "master" else "[~%s]" % version
+    gst_channel = "testing" if version == "master" else "stable"
     url = "https://gitlab.com/aivero/public/conan/conan-" + name
     description = "A set of plugins that aren't up to par compared to the rest"
     license = "LGPL"
@@ -58,7 +60,7 @@ class GStreamerPluginsBadConan(ConanFile):
     def requirements(self):
         self.requires("env-generator/[>=1.0.0]@%s/stable" % self.user)
         self.requires("glib/[>=2.62.0]@%s/stable" % self.user)
-        self.requires("gstreamer-plugins-base/[~%s]@%s/stable" % (self.version, self.user))
+        self.requires("gstreamer-plugins-base/%s@%s/%s" % (self.gst_version, self.user, self.gst_channel))
         if self.options.webrtc:
             self.requires("libnice/[>=0.1.15]@%s/stable" % self.user)
         if self.options.srtp:
