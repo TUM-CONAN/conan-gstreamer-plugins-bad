@@ -31,9 +31,9 @@ class GStreamerPluginsBadConan(ConanFile):
     default_options = (
         "introspection=True",
         "videoparsers=True",
-        "gl=False",
-        "nvdec=False",
-        "nvenc=False",
+        "gl=True",
+        "nvdec=True",
+        "nvenc=True",
         "nvcodec=False",
         "pnm=True",
         "webrtc=False",
@@ -61,6 +61,16 @@ class GStreamerPluginsBadConan(ConanFile):
             self.options.remove("nvenc")
             self.options.remove("nvcodec")
 
+        if self.options.gl:
+            self.options['gstreamer-plugins-base'].gl = True
+
+        if self.options.nvdec or self.options.nvenc or self.options.nvcodec:
+            if self.settings.os == "Linux":
+                self.options['gstreamer-plugins-base'].x11 = True
+            else:
+                print("probably does not work without system window manager dependency")
+
+
     def build_requirements(self):
         self.build_requires("generators/[>=1.0.0]@camposs/stable")
         self.build_requires("meson/[>=0.51.2]@camposs/stable")
@@ -84,6 +94,8 @@ class GStreamerPluginsBadConan(ConanFile):
         #     self.requires("libsrtp/[>=2.2.0]@camposs/stable")
         if self.options.opencv:
             self.requires("opencv/[>=3.4.8]@camposs/stable")
+        if self.options.nvdec or self.options.nvenc or self.options.nvcodec:
+            self.requires("nvidia-video-codec-sdk/9.0.20@vendor/stable")
         # if self.options.closedcaption:
         #     self.requires("pango/[>=1.4.3]@camposs/stable")
 
@@ -109,14 +121,20 @@ class GStreamerPluginsBadConan(ConanFile):
         args.append("-Dopencv=" + ("enabled" if self.options.opencv else "disabled"))
         args.append("-Dclosedcaption=" + ("enabled" if self.options.closedcaption else "disabled"))
         args.append("-Dinter=" + ("enabled" if self.options.inter else "disabled"))
+        use_cuda = self.options.nvdec or self.options.nvenc or self.options.nvcodec
         if self.settings.arch == "x86_64":
             args.append("-Dnvdec=" + ("enabled" if self.options.nvdec else "disabled"))
             args.append("-Dnvenc=" + ("enabled" if self.options.nvenc else "disabled"))
             if self.version == "master":
                 args.append("-Dnvcodec=" + ("enabled" if self.options.nvcodec else "disabled"))
 
+
         meson = Meson(self)
-        meson.configure(source_folder="gst-plugins-bad-%s" % self.version, args=args, pkg_config_paths=os.environ["PKG_CONFIG_PATH"].split(":"))
+        if use_cuda:
+            with tools.environment_append({"CUDA_PATH": self.deps_user_info["cuda_dev_config"].cuda_root}):
+                meson.configure(source_folder="gst-plugins-bad-%s" % self.version, args=args, pkg_config_paths=os.environ["PKG_CONFIG_PATH"].split(":"))
+        else:
+            meson.configure(source_folder="gst-plugins-bad-%s" % self.version, args=args, pkg_config_paths=os.environ["PKG_CONFIG_PATH"].split(":"))
         meson.build()
         meson.install()
 
